@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SyncroCRM — Dark-only design system. All colors are HSL. */
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 90%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 210 20% 90%;
+
+    --popover: 222 40% 11%;
+    --popover-foreground: 210 20% 90%;
+
+    --primary: 185 90% 48%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 222 35% 14%;
+    --secondary-foreground: 210 20% 80%;
+
+    --muted: 222 35% 13%;
+    --muted-foreground: 215 15% 50%;
+
+    --accent: 185 90% 48%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 222 30% 16%;
+    --input: 222 30% 16%;
+    --ring: 185 90% 48%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 5%;
+    --sidebar-foreground: 210 15% 70%;
+    --sidebar-primary: 185 90% 48%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 35% 12%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 222 30% 12%;
+    --sidebar-ring: 185 90% 48%;
+
+    /* Status */
+    --status-new: 215 80% 58%;
+    --status-progress: 38 95% 58%;
+    --status-done: 142 70% 45%;
+
+    /* Chart */
+    --chart-1: 185 90% 48%;
+    --chart-2: 260 70% 65%;
+    --chart-3: 38 95% 58%;
+    --chart-4: 142 70% 45%;
+    --chart-5: 0 72% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  .card-shadow {
+    box-shadow: 0 4px 24px hsl(222 47% 3% / 0.6);
+  }
+  .kanban-col {
+    min-height: 200px;
+  }
+  .status-new {
+    color: hsl(var(--status-new));
+    background-color: hsl(var(--status-new) / 0.12);
+    border-color: hsl(var(--status-new) / 0.3);
+  }
+  .status-progress {
+    color: hsl(var(--status-progress));
+    background-color: hsl(var(--status-progress) / 0.12);
+    border-color: hsl(var(--status-progress) / 0.3);
+  }
+  .status-done {
+    color: hsl(var(--status-done));
+    background-color: hsl(var(--status-done) / 0.12);
+    border-color: hsl(var(--status-done) / 0.3);
+  }
+}
