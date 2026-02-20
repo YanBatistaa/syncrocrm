@@ -1,73 +1,104 @@
-# Welcome to your Lovable project
+# 🔷 SyncroCRM
 
-## Project info
+> CRM pessoal para solo devs — gerencie leads, projetos e workflows em um único lugar.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Stack](https://img.shields.io/badge/stack-React%20%2B%20Supabase-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## ✨ Funcionalidades
 
-**Use Lovable**
+- **Pipeline de Leads** — Kanban e tabela com status, prazo colorido e valor total dos deals
+- **Deals por Lead** — Registre projetos com valor (R$) e estágio diretamente no lead
+- **GitHub Sync** — Sincronize issues de repositórios públicos sem precisar de token
+- **Projetos Pessoais** — Kanban separado para seus projetos com barra de progresso
+- **Workflow Diário** — Timer de 9h com checklist automática de tarefas do dia
+- **Dashboard** — KPIs, pipeline charts e resumo de tudo em um painel
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Tech Stack
 
-**Use your preferred IDE**
+| Camada | Tecnologia |
+|---|---|
+| Frontend | React + TypeScript + Vite |
+| Estilo | Tailwind CSS + ShadCN/UI |
+| Banco de Dados | Supabase (PostgreSQL) |
+| Data Fetching | TanStack React Query |
+| Charts | Recharts |
+| Deploy | Coolify (self-hosted VPS) |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🗄️ Estrutura do Banco
 
-Follow these steps:
+leads → pipeline de clientes
+deals → projetos/valores vinculados a leads
+projetos_pessoais → projetos próprios com progresso 0-100
+github_issues → issues sincronizadas (TTL 90 dias)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+text
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🚀 Rodando localmente
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+# Clone o repositório
+git clone https://github.com/seu-user/syncro-flow.git
+cd syncro-flow
+
+# Instale as dependências
+npm install
+
+# Configure as variáveis de ambiente
+cp .env.example .env
+# Preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+
+# Rode em desenvolvimento
 npm run dev
-```
+```  
 
-**Edit a file directly in GitHub**
+## 📁 Estrutura de Pastas
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+text
+src/
+├── pages/
+│   ├── Dashboard.tsx
+│   ├── Leads.tsx
+│   ├── Projetos.tsx
+│   └── Workflow.tsx
+├── components/
+│   ├── leads/
+│   │   ├── LeadForm.tsx
+│   │   ├── LeadDetailSheet.tsx
+│   │   ├── LeadTableRow.tsx
+│   │   ├── DealForm.tsx
+│   │   ├── DealItem.tsx
+│   │   ├── IssueItem.tsx
+│   │   ├── DeadlineBadge.tsx
+│   │   ├── StatusQuickChange.tsx
+│   │   └── CopyButton.tsx
+│   └── ui/          ← ShadCN components
+└── hooks/
+    ├── useLeads.ts
+    ├── useDeals.ts
+    └── useGithubIssues.ts
+```  
+## 📌 Roadmap
 
-**Use GitHub Codespaces**
+- [x] Aba Leads com pipeline e deals
+- [x] GitHub Issues sync
+- [x] Componentização da aba Leads
+- [ ] Dashboard com KPIs e charts
+- [ ] Aba Projetos Pessoais
+- [ ] Workflow diário com timer 9h
+- [ ] Deploy no VPS via Coolify
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+👤 Autor
+Feito por Yan Batista — uso pessoal, solo dev life. 🚀
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
