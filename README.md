@@ -33,14 +33,14 @@
 ---
 
 ## 🗄️ Estrutura do Banco
-
+```bash
 leads → pipeline de clientes
 deals → projetos/valores vinculados a leads
 projetos_pessoais → projetos próprios com progresso 0-100
 github_issues → issues sincronizadas (TTL 90 dias)
 
-text
 
+``` 
 ---
 
 ## 🚀 Rodando localmente
