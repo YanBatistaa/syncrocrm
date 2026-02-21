@@ -1,6 +1,14 @@
 import { useState, useMemo } from "react";
-import { useLeads, useCreateLead, useUpdateLead, useDeleteLead, Lead, LeadInsert } from "@/hooks/useLeads";
+import {
+  useLeads,
+  useCreateLead,
+  useUpdateLead,
+  useDeleteLead,
+  Lead,
+  LeadInsert,
+} from "@/hooks/useLeads";
 import { useCreateDeal } from "@/hooks/useDeals";
+import { useCreateProjeto } from "@/hooks/useProjetos";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +47,7 @@ export default function Leads() {
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createDeal = useCreateDeal();
+  const createProjeto = useCreateProjeto();
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -71,6 +80,14 @@ export default function Leads() {
         value: parseFloat(initialDealForm.value) || 0,
         stage: initialDealForm.stage,
       });
+      await createProjeto.mutateAsync({
+        name: initialDealForm.title,
+        status: "idea",
+        progress: 0,
+        notes: "",
+        repo_url: initialDealForm.repo_url || null,
+        lead_id: newLead.id,
+      });
     }
     setForm(EMPTY_LEAD);
     setInitialDealForm(EMPTY_DEAL_FORM);
@@ -85,7 +102,10 @@ export default function Leads() {
   };
 
   const handleQuickStatusChange = async (lead: Lead, newStatus: string) => {
-    await updateLead.mutateAsync({ id: lead.id, status: newStatus as "new" | "in-progress" | "done" });
+    await updateLead.mutateAsync({
+      id: lead.id,
+      status: newStatus as "new" | "in-progress" | "done",
+    });
   };
 
   const openLead = (lead: Lead) => {
@@ -140,12 +160,24 @@ export default function Leads() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-muted/30">
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome</th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Empresa</th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prazo</th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Valor</th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">GitHub</th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Nome
+                </th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Empresa
+                </th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Prazo
+                </th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Valor
+                </th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  GitHub
+                </th>
                 <th className="p-3" />
               </tr>
             </thead>

@@ -1,4 +1,4 @@
-import { ChevronDown, DollarSign } from "lucide-react";
+import { ChevronDown, DollarSign, Github } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ export const EMPTY_DEAL_FORM = {
     title: "",
     value: "",
     stage: "prospect" as "prospect" | "negotiation" | "closed",
+    repo_url: "",
 };
 
 interface LeadFormProps {
@@ -60,16 +61,6 @@ export function LeadForm({
                 </div>
             </div>
 
-            <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Repo URL GitHub</Label>
-                <Input
-                    value={form.repo_url ?? ""}
-                    onChange={(e) => set("repo_url", e.target.value)}
-                    className="bg-background border-border/60 text-sm"
-                    placeholder="github.com/user/repo"
-                />
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">Status</Label>
@@ -106,6 +97,7 @@ export function LeadForm({
                 />
             </div>
 
+            {/* Deal + Projeto Inicial */}
             <div className="border border-border/40 rounded-lg overflow-hidden">
                 <button
                     type="button"
@@ -114,7 +106,7 @@ export function LeadForm({
                 >
                     <span className="flex items-center gap-2">
                         <DollarSign className="w-3.5 h-3.5" />
-                        Deal Inicial (opcional)
+                        Deal + Projeto (opcional)
                     </span>
                     <ChevronDown
                         className={`w-3.5 h-3.5 transition-transform ${showDealSection ? "rotate-180" : ""}`}
@@ -123,7 +115,7 @@ export function LeadForm({
                 {showDealSection && (
                     <div className="p-3 space-y-2 bg-background">
                         <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">Título do Projeto</Label>
+                            <Label className="text-xs text-muted-foreground">Título do Projeto *</Label>
                             <Input
                                 value={dealForm.title}
                                 onChange={(e) => onDealFormChange({ ...dealForm, title: e.target.value })}
@@ -160,6 +152,18 @@ export function LeadForm({
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                <Github className="w-3 h-3" />
+                                Repo URL (opcional)
+                            </Label>
+                            <Input
+                                value={dealForm.repo_url}
+                                onChange={(e) => onDealFormChange({ ...dealForm, repo_url: e.target.value })}
+                                className="bg-card border-border/60 text-sm"
+                                placeholder="github.com/user/repo"
+                            />
                         </div>
                     </div>
                 )}
