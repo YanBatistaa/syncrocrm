@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Plus, Archive } from "lucide-react";
 import { LeadForm, EMPTY_DEAL_FORM } from "@/components/leads/LeadForm";
 import { LeadTableRow } from "@/components/leads/LeadTableRow";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
@@ -34,29 +34,41 @@ import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
 const EMPTY_LEAD: LeadInsert = {
   name: "",
   company: "",
+  email: null,
+  phone: null,
   repo_url: "",
   status: "new",
   deadline: null,
   notes: "",
   github_sync: false,
+  tags: null,
+  archived: false,
 };
 
 export default function Leads() {
-  const { data: leads = [], isLoading } = useLeads();
-  const createLead = useCreateLead();
-  const updateLead = useUpdateLead();
-  const deleteLead = useDeleteLead();
-  const createDeal = useCreateDeal();
+  const [showArchived, setShowArchived] = useState(false);
+  const { data: leads = [], isLoading } = useLeads(showArchived);
+  const createLead  = useCreateLead();
+  const updateLead  = useUpdateLead();
+  const deleteLead  = useDeleteLead();
+  const createDeal  = useCreateDeal();
   const createProjeto = useCreateProjeto();
 
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState<LeadInsert>(EMPTY_LEAD);
-  const [editForm, setEditForm] = useState<Partial<Lead>>({});
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedLead,   setSelectedLead]   = useState<Lead | null>(null);
+  const [showCreate,     setShowCreate]     = useState(false);
+  const [form,           setForm]           = useState<LeadInsert>(EMPTY_LEAD);
+  const [editForm,       setEditForm]       = useState<Partial<Lead>>({});
+  const [search,         setSearch]         = useState("");
+  const [statusFilter,   setStatusFilter]   = useState<string>("all");
+  const [tagFilter,      setTagFilter]      = useState<string>("all");
   const [initialDealForm, setInitialDealForm] = useState(EMPTY_DEAL_FORM);
   const [showDealSection, setShowDealSection] = useState(false);
+
+  // Todas as tags existentes
+  const allTags = useMemo(
+    () => Array.from(new Set(leads.flatMap((l) => l.tags ?? []))).sort(),
+    [leads]
+  );
 
   const filtered = useMemo(
     () =>
@@ -65,9 +77,10 @@ export default function Leads() {
           l.name.toLowerCase().includes(search.toLowerCase()) ||
           (l.company ?? "").toLowerCase().includes(search.toLowerCase());
         const matchesStatus = statusFilter === "all" || l.status === statusFilter;
-        return matchesSearch && matchesStatus;
+        const matchesTag    = tagFilter === "all" || (l.tags ?? []).includes(tagFilter);
+        return matchesSearch && matchesStatus && matchesTag;
       }),
-    [leads, search, statusFilter]
+    [leads, search, statusFilter, tagFilter]
   );
 
   const handleCreate = async () => {
@@ -104,19 +117,22 @@ export default function Leads() {
   const handleQuickStatusChange = async (lead: Lead, newStatus: string) => {
     await updateLead.mutateAsync({
       id: lead.id,
-      status: newStatus as "new" | "in-progress" | "done",
+      status: newStatus as Lead["status"],
     });
   };
 
   const openLead = (lead: Lead) => {
     setSelectedLead(lead);
     setEditForm({
-      name: lead.name,
-      company: lead.company ?? "",
+      name:     lead.name,
+      company:  lead.company ?? "",
+      email:    lead.email ?? "",
+      phone:    lead.phone ?? "",
       repo_url: lead.repo_url ?? "",
-      status: lead.status,
+      status:   lead.status,
       deadline: lead.deadline,
-      notes: lead.notes ?? "",
+      notes:    lead.notes ?? "",
+      tags:     lead.tags ?? [],
     });
   };
 
@@ -126,15 +142,28 @@ export default function Leads() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {leads.length} leads cadastrados
+            {leads.length} lead{leads.length !== 1 ? "s" : ""}
+            {showArchived && <span className="text-muted-foreground/60 ml-1">(incluindo arquivados)</span>}
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)} size="sm" className="glow-primary">
-          <Plus className="w-4 h-4" />
-          Novo Lead
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-border/60 text-xs gap-1.5"
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            <Archive className="w-3.5 h-3.5" />
+            {showArchived ? "Ocultar arquivados" : "Ver arquivados"}
+          </Button>
+          <Button onClick={() => setShowCreate(true)} size="sm" className="glow-primary">
+            <Plus className="w-4 h-4" />
+            Novo Lead
+          </Button>
+        </div>
       </div>
 
+      {/* Filtros */}
       <div className="flex gap-3 flex-wrap">
         <Input
           placeholder="Buscar por nome ou empresa..."
@@ -143,16 +172,29 @@ export default function Leads() {
           className="max-w-xs bg-card border-border/60 text-sm"
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40 bg-card border-border/60 text-sm">
-            <SelectValue />
+          <SelectTrigger className="w-44 bg-card border-border/60 text-sm">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="new">Novo</SelectItem>
             <SelectItem value="in-progress">Em Progresso</SelectItem>
             <SelectItem value="done">Concluído</SelectItem>
           </SelectContent>
         </Select>
+        {allTags.length > 0 && (
+          <Select value={tagFilter} onValueChange={setTagFilter}>
+            <SelectTrigger className="w-44 bg-card border-border/60 text-sm">
+              <SelectValue placeholder="Tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as tags</SelectItem>
+              {allTags.map((tag) => (
+                <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <Card className="border-border/60 card-shadow overflow-hidden">
@@ -160,41 +202,22 @@ export default function Leads() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-muted/30">
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Nome
-                </th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Empresa
-                </th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Prazo
-                </th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Valor
-                </th>
-                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  GitHub
-                </th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome</th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Empresa</th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tags</th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prazo</th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Valor</th>
+                <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">GitHub</th>
                 <th className="p-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {isLoading && (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-muted-foreground text-xs">
-                    Carregando...
-                  </td>
-                </tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-xs">Carregando...</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-muted-foreground text-xs">
-                    Nenhum lead encontrado
-                  </td>
-                </tr>
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-xs">Nenhum lead encontrado</td></tr>
               )}
               {filtered.map((lead) => (
                 <LeadTableRow
@@ -225,9 +248,7 @@ export default function Leads() {
             onToggleDealSection={() => setShowDealSection(!showDealSection)}
           />
           <div className="flex gap-2 justify-end mt-2">
-            <Button variant="outline" size="sm" onClick={() => setShowCreate(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowCreate(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreate} disabled={createLead.isPending}>
               {createLead.isPending ? "Salvando..." : "Criar Lead"}
             </Button>

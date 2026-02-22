@@ -8,26 +8,32 @@ export interface Lead {
   user_id: string;
   name: string;
   company: string | null;
+  email: string | null;
+  phone: string | null;
   repo_url: string | null;
   status: "new" | "in-progress" | "done";
   deadline: string | null;
   notes: string | null;
   github_sync: boolean;
+  tags: string[] | null;
+  archived: boolean;
   created_at: string;
 }
 
 export type LeadInsert = Omit<Lead, "id" | "created_at" | "user_id">;
 export type LeadUpdate = Partial<LeadInsert>;
 
-export function useLeads() {
+export function useLeads(includeArchived = false) {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["leads", user?.id],
+    queryKey: ["leads", user?.id, includeArchived],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("leads")
         .select("*")
         .order("created_at", { ascending: false });
+      if (!includeArchived) q = q.eq("archived", false);
+      const { data, error } = await q;
       if (error) throw error;
       return data as Lead[];
     },
@@ -52,7 +58,8 @@ export function useCreateLead() {
       qc.invalidateQueries({ queryKey: ["leads", user?.id] });
       toast({ title: "Lead criado com sucesso!" });
     },
-    onError: (e: Error) => toast({ title: "Erro ao criar lead", description: e.message, variant: "destructive" }),
+    onError: (e: Error) =>
+      toast({ title: "Erro ao criar lead", description: e.message, variant: "destructive" }),
   });
 }
 
@@ -74,7 +81,28 @@ export function useUpdateLead() {
       qc.invalidateQueries({ queryKey: ["leads", user?.id] });
       toast({ title: "Lead atualizado!" });
     },
-    onError: (e: Error) => toast({ title: "Erro ao atualizar lead", description: e.message, variant: "destructive" }),
+    onError: (e: Error) =>
+      toast({ title: "Erro ao atualizar lead", description: e.message, variant: "destructive" }),
+  });
+}
+
+export function useArchiveLead() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ id, archived }: { id: number; archived: boolean }) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ archived })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["leads", user?.id] });
+      toast({ title: vars.archived ? "Lead arquivado." : "Lead restaurado!" });
+    },
+    onError: (e: Error) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
 
@@ -90,6 +118,7 @@ export function useDeleteLead() {
       qc.invalidateQueries({ queryKey: ["leads", user?.id] });
       toast({ title: "Lead removido." });
     },
-    onError: (e: Error) => toast({ title: "Erro ao remover lead", description: e.message, variant: "destructive" }),
+    onError: (e: Error) =>
+      toast({ title: "Erro ao remover lead", description: e.message, variant: "destructive" }),
   });
 }

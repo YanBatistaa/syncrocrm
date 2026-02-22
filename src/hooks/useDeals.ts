@@ -8,10 +8,11 @@ export interface Deal {
   lead_id: number;
   title: string;
   value: number;
-  stage: "prospect" | "negotiation" | "closed";
+  stage: "prospect" | "negotiation" | "closed" | "lost";
   notes: string | null;
   repo_url: string | null;
   created_at: string;
+  closed_at: string | null;
 }
 
 export interface DealWithLead extends Deal {
@@ -19,14 +20,19 @@ export interface DealWithLead extends Deal {
   lead_company: string | null;
 }
 
-export type DealInsert = Omit<Deal, "id" | "created_at">;
-export type DealUpdate = Partial<Pick<Deal, "title" | "value" | "stage" | "notes" | "repo_url">> & { id: number };
+export type DealInsert = Omit<Deal, "id" | "created_at" | "closed_at">;
+export type DealUpdate = Partial<
+  Pick<Deal, "title" | "value" | "stage" | "notes" | "repo_url" | "closed_at">
+> & { id: number };
 
 export function useDeals(leadId?: number) {
   return useQuery({
     queryKey: ["deals", leadId],
     queryFn: async () => {
-      let q = supabase.from("deals").select("*").order("created_at", { ascending: false });
+      let q = supabase
+        .from("deals")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (leadId) q = q.eq("lead_id", leadId);
       const { data, error } = await q;
       if (error) throw error;
@@ -45,7 +51,9 @@ export function useAllDealsWithLead() {
         .select(`*, leads!inner(name, company)`)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data as (Deal & { leads: { name: string; company: string | null } })[]).map((d) => ({
+      return (
+        data as (Deal & { leads: { name: string; company: string | null } })[]
+      ).map((d) => ({
         ...d,
         lead_name: d.leads.name,
         lead_company: d.leads.company,
@@ -70,7 +78,11 @@ export function useCreateDeal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (deal: DealInsert) => {
-      const { data, error } = await supabase.from("deals").insert(deal).select().single();
+      const { data, error } = await supabase
+        .from("deals")
+        .insert(deal)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -80,7 +92,8 @@ export function useCreateDeal() {
       qc.invalidateQueries({ queryKey: ["deals-with-lead"] });
       toast({ title: "Deal criado!" });
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
 
@@ -88,6 +101,14 @@ export function useUpdateDeal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...update }: DealUpdate) => {
+      // Se mudou para closed, seta closed_at automaticamente
+      if (update.stage === "closed" && !update.closed_at) {
+        update.closed_at = new Date().toISOString();
+      }
+      // Se saiu de closed, limpa closed_at
+      if (update.stage && update.stage !== "closed") {
+        update.closed_at = null;
+      }
       const { data, error } = await supabase
         .from("deals")
         .update(update)
@@ -102,7 +123,12 @@ export function useUpdateDeal() {
       qc.invalidateQueries({ queryKey: ["deals"] });
       qc.invalidateQueries({ queryKey: ["deals-with-lead"] });
     },
-    onError: (e: Error) => toast({ title: "Erro ao atualizar deal", description: e.message, variant: "destructive" }),
+    onError: (e: Error) =>
+      toast({
+        title: "Erro ao atualizar deal",
+        description: e.message,
+        variant: "destructive",
+      }),
   });
 }
 
@@ -117,6 +143,7 @@ export function useDeleteDeal() {
       qc.invalidateQueries({ queryKey: ["deals"] });
       qc.invalidateQueries({ queryKey: ["deals-with-lead"] });
     },
-    onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: Error) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
