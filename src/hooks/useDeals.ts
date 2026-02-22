@@ -18,6 +18,7 @@ export interface DealWithLead extends Deal {
 }
 
 export type DealInsert = Omit<Deal, "id" | "created_at">;
+export type DealUpdate = Partial<Pick<Deal, "title" | "value" | "stage">> & { id: number };
 
 export function useDeals(leadId?: number) {
   return useQuery({
@@ -40,10 +41,7 @@ export function useAllDealsWithLead() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("deals")
-        .select(`
-          *,
-          leads!inner(name, company)
-        `)
+        .select(`*, leads!inner(name, company)`)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as (Deal & { leads: { name: string; company: string | null } })[]).map((d) => ({
@@ -82,6 +80,28 @@ export function useCreateDeal() {
       toast({ title: "Deal criado!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+}
+
+export function useUpdateDeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...update }: DealUpdate) => {
+      const { data, error } = await supabase
+        .from("deals")
+        .update(update)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: Deal) => {
+      qc.invalidateQueries({ queryKey: ["deals", data.lead_id] });
+      qc.invalidateQueries({ queryKey: ["deals"] });
+      qc.invalidateQueries({ queryKey: ["deals-with-lead"] });
+    },
+    onError: (e: Error) => toast({ title: "Erro ao mover deal", description: e.message, variant: "destructive" }),
   });
 }
 
