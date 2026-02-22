@@ -1,8 +1,10 @@
 import { createRoot } from "react-dom/client";
+import { ThemeProvider } from "next-themes";
 import App from "./App.tsx";
 import "./index.css";
 
-// Force dark mode (SyncroCRM is dark-only)
-document.documentElement.classList.add("dark");
-
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+    <App />
+  </ThemeProvider>
+);
