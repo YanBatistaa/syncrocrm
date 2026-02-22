@@ -9,9 +9,9 @@ export interface DealNote {
   created_at: string;
 }
 
-export function useDealNotes(dealId: number | null) {
+export function useDealNotes(dealId?: number) {
   return useQuery({
-    queryKey: ["deal-notes", dealId],
+    queryKey: ["deal_notes", dealId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("deal_notes")
@@ -37,26 +37,10 @@ export function useCreateDealNote() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ["deal-notes", vars.deal_id] });
+    onSuccess: (data: DealNote) => {
+      qc.invalidateQueries({ queryKey: ["deal_notes", data.deal_id] });
     },
     onError: (e: Error) =>
       toast({ title: "Erro ao salvar nota", description: e.message, variant: "destructive" }),
-  });
-}
-
-export function useDeleteDealNote() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, deal_id }: { id: number; deal_id: number }) => {
-      const { error } = await supabase.from("deal_notes").delete().eq("id", id);
-      if (error) throw error;
-      return deal_id;
-    },
-    onSuccess: (deal_id) => {
-      qc.invalidateQueries({ queryKey: ["deal-notes", deal_id] });
-    },
-    onError: (e: Error) =>
-      toast({ title: "Erro ao remover nota", description: e.message, variant: "destructive" }),
   });
 }
