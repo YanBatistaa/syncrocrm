@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
 export interface Deal {
@@ -9,6 +10,11 @@ export interface Deal {
   value: number;
   stage: "prospect" | "negotiation" | "closed";
   created_at: string;
+}
+
+export interface DealWithLead extends Deal {
+  lead_name: string;
+  lead_company: string | null;
 }
 
 export type DealInsert = Omit<Deal, "id" | "created_at">;
@@ -23,6 +29,30 @@ export function useDeals(leadId?: number) {
       if (error) throw error;
       return data as Deal[];
     },
+  });
+}
+
+// Busca todos os deals com o nome do lead (para aba Projetos)
+export function useAllDealsWithLead() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["deals-with-lead", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("deals")
+        .select(`
+          *,
+          leads!inner(name, company)
+        `)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data as (Deal & { leads: { name: string; company: string | null } })[]).map((d) => ({
+        ...d,
+        lead_name: d.leads.name,
+        lead_company: d.leads.company,
+      })) as DealWithLead[];
+    },
+    enabled: !!user,
   });
 }
 
@@ -48,6 +78,7 @@ export function useCreateDeal() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["deals", vars.lead_id] });
       qc.invalidateQueries({ queryKey: ["deals"] });
+      qc.invalidateQueries({ queryKey: ["deals-with-lead"] });
       toast({ title: "Deal criado!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -63,6 +94,7 @@ export function useDeleteDeal() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deals"] });
+      qc.invalidateQueries({ queryKey: ["deals-with-lead"] });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
