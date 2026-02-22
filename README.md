@@ -28,43 +28,45 @@
 | Banco de Dados | Supabase (PostgreSQL) |
 | Data Fetching | TanStack React Query |
 | Charts | Recharts |
+| Formulários | React Hook Form + Zod |
 | Deploy | Coolify (self-hosted VPS) |
 
 ---
 
 ## 🗄️ Estrutura do Banco
+
 ```bash
-leads → pipeline de clientes
-deals → projetos/valores vinculados a leads
-projetos_pessoais → projetos próprios com progresso 0-100
-github_issues → issues sincronizadas (TTL 90 dias)
+leads              → pipeline de clientes
+deals              → projetos/valores vinculados a leads
+projetos_pessoais  → projetos próprios com progresso 0-100
+github_issues      → issues sincronizadas (TTL 90 dias)
+```
 
-
-``` 
 ---
 
 ## 🚀 Rodando localmente
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-user/syncro-flow.git
-cd syncro-flow
+git clone https://github.com/YanBatistaa/syncrocrm.git
+cd syncrocrm
 
 # Instale as dependências
 npm install
 
 # Configure as variáveis de ambiente
 cp .env.example .env
-# Preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+# Preencha VITE_SUPABASE_URL, VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY
 
 # Rode em desenvolvimento
 npm run dev
-```  
+```
+
+---
 
 ## 📁 Estrutura de Pastas
 
-```bash
-text
+```
 src/
 ├── pages/
 │   ├── Dashboard.tsx
@@ -82,23 +84,29 @@ src/
 │   │   ├── DeadlineBadge.tsx
 │   │   ├── StatusQuickChange.tsx
 │   │   └── CopyButton.tsx
-│   └── ui/          ← ShadCN components
+│   └── ui/               ← ShadCN components
 └── hooks/
     ├── useLeads.ts
     ├── useDeals.ts
-    └── useGithubIssues.ts
-```  
+    ├── useGithubIssues.ts
+    ├── useProjetos.ts
+    ├── useAutomations.ts
+    └── useDailyTasks.ts
+```
+
+---
+
 ## 📌 Roadmap
 
 - [x] Aba Leads com pipeline e deals
 - [x] GitHub Issues sync
 - [x] Componentização da aba Leads
-- [ ] Dashboard com KPIs e charts
-- [ ] Aba Projetos Pessoais
-- [ ] Workflow diário com timer 9h
+- [x] Dashboard com KPIs e charts
+- [x] Aba Projetos Pessoais
+- [x] Workflow diário com timer 9h
 - [ ] Deploy no VPS via Coolify
 
+---
 
-👤 Autor
+👤 **Autor**
 Feito por Yan Batista — uso pessoal, solo dev life. 🚀
-
