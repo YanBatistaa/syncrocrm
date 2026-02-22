@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { DealWithLead, useUpdateDeal, useDeleteDeal } from "@/hooks/useDeals";
 import { useGithubIssues, useSyncGithubIssues } from "@/hooks/useGithubIssues";
 import { useDealNotes, useCreateDealNote } from "@/hooks/useDealNotes";
+import { DealFilesSection } from "@/components/DealFilesSection";
 import { toast } from "@/hooks/use-toast";
 import {
   Briefcase,
@@ -40,9 +40,10 @@ import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const STAGE_CONFIG = {
-  prospect: { label: "Prospect", color: "hsl(var(--muted-foreground))" },
-  negotiation: { label: "Negociação", color: "hsl(var(--status-progress))" },
-  closed: { label: "Fechado", color: "hsl(var(--status-done))" },
+  prospect:    { label: "Prospect",    color: "hsl(var(--muted-foreground))" },
+  negotiation: { label: "Negociação",  color: "hsl(var(--status-progress))" },
+  closed:      { label: "Fechado",      color: "hsl(var(--status-done))" },
+  lost:        { label: "Perdido",      color: "hsl(var(--destructive))" },
 } as const;
 
 interface Props {
@@ -57,24 +58,24 @@ export default function DealPageModal({ deal, onClose }: Props) {
   const createNote = useCreateDealNote();
 
   const { data: issues = [] } = useGithubIssues(undefined, undefined, deal?.id);
-  const { data: notes = [] } = useDealNotes(deal?.id);
+  const { data: notes  = [] } = useDealNotes(deal?.id);
 
   const [form, setForm] = useState({
-    title: "",
-    value: "",
-    stage: "prospect" as keyof typeof STAGE_CONFIG,
+    title:    "",
+    value:    "",
+    stage:    "prospect" as keyof typeof STAGE_CONFIG,
     repo_url: "",
   });
-  const [noteInput, setNoteInput] = useState("");
+  const [noteInput,     setNoteInput]     = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (deal) {
       setForm({
-        title: deal.title ?? "",
-        value: String(deal.value ?? ""),
-        stage: deal.stage as keyof typeof STAGE_CONFIG,
+        title:    deal.title    ?? "",
+        value:    String(deal.value ?? ""),
+        stage:    (deal.stage as keyof typeof STAGE_CONFIG) ?? "prospect",
         repo_url: deal.repo_url ?? "",
       });
       setNoteInput("");
@@ -90,10 +91,10 @@ export default function DealPageModal({ deal, onClose }: Props) {
   const handleSave = () => {
     updateDeal.mutate(
       {
-        id: deal.id,
-        title: form.title,
-        value: parseFloat(form.value) || 0,
-        stage: form.stage,
+        id:       deal.id,
+        title:    form.title,
+        value:    parseFloat(form.value) || 0,
+        stage:    form.stage,
         repo_url: form.repo_url || null,
       },
       { onSuccess: () => toast({ title: "Deal atualizado!" }) }
@@ -119,15 +120,15 @@ export default function DealPageModal({ deal, onClose }: Props) {
     );
   };
 
-  const openIssues = issues.filter((i) => i.state === "open");
+  const openIssues   = issues.filter((i) => i.state === "open");
   const closedIssues = issues.filter((i) => i.state === "closed");
-  const stageConf = STAGE_CONFIG[form.stage];
+  const stageConf    = STAGE_CONFIG[form.stage] ?? STAGE_CONFIG.prospect;
 
   return (
     <Dialog open={!!deal} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 flex flex-col bg-card border-border/60 overflow-hidden gap-0">
 
-        {/* ─── Cabeçalho fixo ────────────────────────────────────────────────────── */}
+        {/* ─── Cabeçalho fixo ──────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -165,10 +166,10 @@ export default function DealPageModal({ deal, onClose }: Props) {
           </div>
         </div>
 
-        {/* ─── Conteúdo em 2 colunas com scroll ─────────────────────────────────── */}
+        {/* ─── Conteúdo 2 colunas ─────────────────────────────────────────────── */}
         <div className="flex-1 overflow-hidden flex">
 
-          {/* Coluna esquerda: Informações + Issues */}
+          {/* Coluna esquerda: Informações + Arquivos + Issues */}
           <div className="w-[55%] flex-shrink-0 border-r border-border/40 overflow-y-auto p-6 space-y-7">
 
             {/* Informações */}
@@ -210,6 +211,7 @@ export default function DealPageModal({ deal, onClose }: Props) {
                         <SelectItem value="prospect">Prospect</SelectItem>
                         <SelectItem value="negotiation">Negociação</SelectItem>
                         <SelectItem value="closed">Fechado</SelectItem>
+                        <SelectItem value="lost">Perdido</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -257,6 +259,11 @@ export default function DealPageModal({ deal, onClose }: Props) {
 
             <Separator className="bg-border/40" />
 
+            {/* —— Arquivos —— */}
+            <DealFilesSection dealId={deal.id} />
+
+            <Separator className="bg-border/40" />
+
             {/* GitHub Issues */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
@@ -275,13 +282,8 @@ export default function DealPageModal({ deal, onClose }: Props) {
                   className="h-7 text-xs border-border/60"
                   onClick={handleSync}
                   disabled={syncIssues.isPending || !form.repo_url}
-                  title={!form.repo_url ? "Adicione um Repo URL" : ""}
                 >
-                  {syncIssues.isPending ? (
-                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-3 h-3 mr-1" />
-                  )}
+                  <RefreshCw className={`w-3 h-3 mr-1 ${syncIssues.isPending ? "animate-spin" : ""}`} />
                   Sync
                 </Button>
               </div>
@@ -298,7 +300,6 @@ export default function DealPageModal({ deal, onClose }: Props) {
                 </p>
               )}
 
-              {/* Abertas */}
               {openIssues.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Abertas</p>
@@ -308,7 +309,6 @@ export default function DealPageModal({ deal, onClose }: Props) {
                 </div>
               )}
 
-              {/* Fechadas */}
               {closedIssues.length > 0 && (
                 <div className="space-y-1.5 mt-3">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Fechadas</p>
@@ -322,7 +322,6 @@ export default function DealPageModal({ deal, onClose }: Props) {
 
           {/* Coluna direita: Timeline de Notas */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Header da coluna */}
             <div className="px-6 py-4 border-b border-border/40 flex-shrink-0">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5" />
@@ -331,7 +330,6 @@ export default function DealPageModal({ deal, onClose }: Props) {
               </h2>
             </div>
 
-            {/* Feed de notas com scroll */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-0">
               {notes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
@@ -342,13 +340,10 @@ export default function DealPageModal({ deal, onClose }: Props) {
                 </div>
               ) : (
                 <div className="relative">
-                  {/* Linha vertical da timeline */}
                   <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border/60" />
-
                   <div className="space-y-5">
                     {notes.map((note, idx) => (
                       <div key={note.id} className="flex gap-4 relative">
-                        {/* Dot */}
                         <div className="flex-shrink-0 mt-1">
                           {idx === 0 ? (
                             <Circle className="w-3.5 h-3.5 text-primary fill-primary" />
@@ -356,7 +351,6 @@ export default function DealPageModal({ deal, onClose }: Props) {
                             <Circle className="w-3.5 h-3.5 text-border fill-card" />
                           )}
                         </div>
-                        {/* Conteúdo */}
                         <div className="flex-1 pb-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-xs font-medium text-foreground">
@@ -382,7 +376,6 @@ export default function DealPageModal({ deal, onClose }: Props) {
               )}
             </div>
 
-            {/* Input fixo no fundo */}
             <div className="px-6 py-4 border-t border-border/40 flex-shrink-0 space-y-2">
               <Textarea
                 ref={noteRef}
@@ -411,7 +404,7 @@ export default function DealPageModal({ deal, onClose }: Props) {
           </div>
         </div>
 
-        {/* ─── Footer fixo ──────────────────────────────────────────────────────── */}
+        {/* ─── Footer fixo ────────────────────────────────────────────────────── */}
         <div className="px-6 py-3 border-t border-border/40 flex justify-between items-center flex-shrink-0 bg-card">
           <Button
             variant="ghost"
@@ -430,7 +423,7 @@ export default function DealPageModal({ deal, onClose }: Props) {
             )}
             {confirmDelete ? "Clique novamente para confirmar" : "Excluir deal"}
           </Button>
-          <span className="text-xs text-muted-foreground/40">Deal #{ deal.id}</span>
+          <span className="text-xs text-muted-foreground/40">Deal #{deal.id}</span>
         </div>
 
       </DialogContent>
