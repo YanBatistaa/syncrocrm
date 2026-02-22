@@ -1,1 +1,8 @@
 project_id = "ppkzlwlyldeqmkmnmevm"
+
+[functions.cron-automations]
+verify_jwt = false
+
+[functions.webhook-new-lead]
+verify_jwt = false
+
