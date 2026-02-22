@@ -19,12 +19,12 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   useAllDealsWithLead,
   useDeleteDeal,
+  useUpdateDeal,
   DealWithLead,
 } from "@/hooks/useDeals";
-import { useUpdateDeal } from "@/hooks/useDeals";
+import DealDetailSheet from "@/components/DealDetailSheet";
 import { Briefcase, DollarSign, Trash2, GripVertical } from "lucide-react";
 
-// ── Colunas do Kanban ────────────────────────────────────────────────────────
 const COLUMNS = [
   { id: "prospect", label: "Prospect", color: "hsl(var(--muted-foreground))" },
   { id: "negotiation", label: "Negociação", color: "hsl(var(--status-progress))" },
@@ -33,15 +33,15 @@ const COLUMNS = [
 
 type Stage = "prospect" | "negotiation" | "closed";
 
-// ── Página principal ─────────────────────────────────────────────────────────
 export default function Projetos() {
   const { data: deals = [], isLoading } = useAllDealsWithLead();
   const deleteDeal = useDeleteDeal();
   const updateDeal = useUpdateDeal();
 
   const [activeDeal, setActiveDeal] = useState<DealWithLead | null>(null);
-  // optimistic: guarda stage local enquanto salva no server
+  const [selectedDeal, setSelectedDeal] = useState<DealWithLead | null>(null);
   const [stageOverride, setStageOverride] = useState<Record<number, Stage>>({});
+  const [isDragging, setIsDragging] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -50,85 +50,56 @@ export default function Projetos() {
   const getStage = (deal: DealWithLead): Stage =>
     (stageOverride[deal.id] ?? deal.stage) as Stage;
 
-  const totalValue = deals
-    .filter((d) => getStage(d) !== "closed" || d.stage === "closed")
-    .reduce((a, d) => a + (d.value || 0), 0);
+  const totalValue = deals.reduce((a, d) => a + (d.value || 0), 0);
 
-  // ── Handlers DnD ──────────────────────────────────────────────────────────
-  const handleDragStart = useCallback(
-    (e: DragStartEvent) => {
-      const deal = deals.find((d) => d.id === Number(e.active.id));
-      setActiveDeal(deal ?? null);
-    },
-    [deals]
-  );
+  const handleDragStart = useCallback((e: DragStartEvent) => {
+    setIsDragging(true);
+    const deal = deals.find((d) => d.id === Number(e.active.id));
+    setActiveDeal(deal ?? null);
+  }, [deals]);
 
-  const handleDragOver = useCallback(
-    (e: DragOverEvent) => {
-      const { over } = e;
-      if (!over || !activeDeal) return;
+  const handleDragOver = useCallback((e: DragOverEvent) => {
+    const { over } = e;
+    if (!over || !activeDeal) return;
+    const overId = String(over.id);
+    const colMatch = COLUMNS.find((c) => c.id === overId);
+    if (colMatch) {
+      setStageOverride((prev) => ({ ...prev, [activeDeal.id]: colMatch.id as Stage }));
+      return;
+    }
+    const overDeal = deals.find((d) => d.id === Number(overId));
+    if (overDeal) {
+      const targetStage = (stageOverride[overDeal.id] ?? overDeal.stage) as Stage;
+      setStageOverride((prev) => ({ ...prev, [activeDeal.id]: targetStage }));
+    }
+  }, [activeDeal, deals, stageOverride]);
 
-      const overId = String(over.id);
-      // Se soltou sobre uma coluna diretamente
-      const colMatch = COLUMNS.find((c) => c.id === overId);
-      if (colMatch) {
-        setStageOverride((prev) => ({ ...prev, [activeDeal.id]: colMatch.id as Stage }));
-        return;
-      }
-      // Se soltou sobre outro card — descobre a coluna dele
-      const overDeal = deals.find((d) => d.id === Number(overId));
-      if (overDeal) {
-        const targetStage = (stageOverride[overDeal.id] ?? overDeal.stage) as Stage;
-        setStageOverride((prev) => ({ ...prev, [activeDeal.id]: targetStage }));
-      }
-    },
-    [activeDeal, deals, stageOverride]
-  );
+  const handleDragEnd = useCallback((e: DragEndEvent) => {
+    const { active, over } = e;
+    setActiveDeal(null);
+    setIsDragging(false);
 
-  const handleDragEnd = useCallback(
-    (e: DragEndEvent) => {
-      const { active, over } = e;
-      setActiveDeal(null);
+    if (!over) {
+      setStageOverride((prev) => { const next = { ...prev }; delete next[Number(active.id)]; return next; });
+      return;
+    }
+    const dealId = Number(active.id);
+    const deal = deals.find((d) => d.id === dealId);
+    if (!deal) return;
+    const newStage = stageOverride[dealId];
+    if (newStage && newStage !== deal.stage) {
+      updateDeal.mutate({ id: dealId, stage: newStage }, {
+        onSettled: () => setStageOverride((prev) => { const next = { ...prev }; delete next[dealId]; return next; }),
+      });
+    } else {
+      setStageOverride((prev) => { const next = { ...prev }; delete next[dealId]; return next; });
+    }
+  }, [deals, stageOverride, updateDeal]);
 
-      if (!over) {
-        // Cancelado — remove override
-        setStageOverride((prev) => {
-          const next = { ...prev };
-          delete next[Number(active.id)];
-          return next;
-        });
-        return;
-      }
-
-      const dealId = Number(active.id);
-      const deal = deals.find((d) => d.id === dealId);
-      if (!deal) return;
-
-      const newStage = stageOverride[dealId];
-      if (newStage && newStage !== deal.stage) {
-        // Persiste no Supabase
-        updateDeal.mutate(
-          { id: dealId, stage: newStage },
-          {
-            onSettled: () => {
-              setStageOverride((prev) => {
-                const next = { ...prev };
-                delete next[dealId];
-                return next;
-              });
-            },
-          }
-        );
-      } else {
-        setStageOverride((prev) => {
-          const next = { ...prev };
-          delete next[dealId];
-          return next;
-        });
-      }
-    },
-    [deals, stageOverride, updateDeal]
-  );
+  // Abre o sheet apenas se não estava arrastando
+  const handleCardClick = (deal: DealWithLead) => {
+    if (!isDragging) setSelectedDeal(deal);
+  };
 
   if (isLoading) {
     return <div className="text-center py-16 text-muted-foreground text-sm">Carregando...</div>;
@@ -136,26 +107,19 @@ export default function Projetos() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Projetos</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {deals.length} deal{deals.length !== 1 ? "s" : ""}
-            {totalValue > 0 && (
-              <> · R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>
-            )}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Projetos</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {deals.length} deal{deals.length !== 1 ? "s" : ""}
+          {totalValue > 0 && <> · R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>}
+        </p>
       </div>
 
       {deals.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
           <Briefcase className="w-10 h-10 text-muted-foreground/30" />
           <p className="text-muted-foreground text-sm">Nenhum deal cadastrado ainda.</p>
-          <p className="text-muted-foreground/60 text-xs">
-            Adicione deals nos seus Leads para eles aparecerem aqui.
-          </p>
+          <p className="text-muted-foreground/60 text-xs">Adicione deals nos seus Leads para eles aparecerem aqui.</p>
         </div>
       ) : (
         <DndContext
@@ -174,32 +138,35 @@ export default function Projetos() {
                   col={col}
                   deals={colDeals}
                   onDelete={(id) => deleteDeal.mutate(id)}
+                  onCardClick={handleCardClick}
                 />
               );
             })}
           </div>
 
-          {/* Ghost card enquanto arrasta */}
           <DragOverlay>
-            {activeDeal ? (
-              <DealCard deal={activeDeal} onDelete={() => {}} isDragging />
-            ) : null}
+            {activeDeal ? <DealCard deal={activeDeal} onDelete={() => {}} onCardClick={() => {}} isOverlay /> : null}
           </DragOverlay>
         </DndContext>
       )}
+
+      {/* Detail Sheet */}
+      <DealDetailSheet
+        deal={selectedDeal}
+        onClose={() => setSelectedDeal(null)}
+      />
     </div>
   );
 }
 
-// ── Coluna ───────────────────────────────────────────────────────────────────
+// ─── Kanban Column ────────────────────────────────────────────────────────────
 function KanbanColumn({
-  col,
-  deals,
-  onDelete,
+  col, deals, onDelete, onCardClick,
 }: {
   col: { id: string; label: string; color: string };
   deals: DealWithLead[];
   onDelete: (id: number) => void;
+  onCardClick: (deal: DealWithLead) => void;
 }) {
   const { setNodeRef, isOver } = useSortable({
     id: col.id,
@@ -215,17 +182,10 @@ function KanbanColumn({
         isOver ? "border-primary/50 bg-primary/5" : "border-border/60 bg-card/30"
       }`}
     >
-      {/* Cabeçalho da coluna */}
       <div className="flex items-center justify-between p-3 pb-2 border-b border-border/40">
         <div className="flex items-center gap-2">
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{ background: col.color }}
-          />
-          <span
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: col.color }}
-          >
+          <span className="w-2 h-2 rounded-full" style={{ background: col.color }} />
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: col.color }}>
             {col.label}
           </span>
           <span
@@ -242,17 +202,14 @@ function KanbanColumn({
         )}
       </div>
 
-      {/* Cards */}
       <div className="flex-1 p-2 space-y-2">
-        <SortableContext
-          items={deals.map((d) => d.id)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
             <DealCard
               key={deal.id}
               deal={deal}
               onDelete={() => onDelete(deal.id)}
+              onCardClick={onCardClick}
             />
           ))}
         </SortableContext>
@@ -266,45 +223,41 @@ function KanbanColumn({
   );
 }
 
-// ── Deal Card ─────────────────────────────────────────────────────────────────
+// ─── Deal Card ────────────────────────────────────────────────────────────────
 function DealCard({
-  deal,
-  onDelete,
-  isDragging = false,
+  deal, onDelete, onCardClick, isOverlay = false,
 }: {
   deal: DealWithLead;
   onDelete: () => void;
-  isDragging?: boolean;
+  onCardClick: (deal: DealWithLead) => void;
+  isOverlay?: boolean;
 }) {
   const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
+    attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging,
   } = useSortable({ id: deal.id, data: { type: "deal" } });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isSortableDragging ? 0.35 : 1,
+    opacity: isSortableDragging ? 0.3 : 1,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg border bg-card p-3 space-y-2.5 group select-none ${
-        isDragging
-          ? "shadow-xl border-primary/40 rotate-1 scale-105"
-          : "border-border/60 hover:border-border transition-colors"
+      onClick={() => onCardClick(deal)}
+      className={`rounded-lg border bg-card p-3 space-y-2 group select-none cursor-pointer ${
+        isOverlay
+          ? "shadow-2xl border-primary/40 rotate-1 scale-[1.03]"
+          : "border-border/60 hover:border-border hover:shadow-sm transition-all"
       }`}
     >
-      {/* Linha topo: grip + título + delete */}
+      {/* Grip + título + delete */}
       <div className="flex items-start gap-2">
         <button
-          className="mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+          className="mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors"
+          onClick={(e) => e.stopPropagation()}
           {...attributes}
           {...listeners}
         >
@@ -313,7 +266,7 @@ function DealCard({
         <p className="text-xs font-medium text-foreground flex-1 leading-snug">{deal.title}</p>
         <button
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={onDelete}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
           className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-muted-foreground hover:text-destructive"
         >
           <Trash2 className="w-3 h-3" />
@@ -335,6 +288,11 @@ function DealCard({
           <DollarSign className="w-3 h-3" />
           R$ {deal.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
         </div>
+      )}
+
+      {/* Indicador de notas */}
+      {deal.notes && (
+        <div className="w-1 h-1 rounded-full bg-primary/40" title="Tem anotações" />
       )}
     </div>
   );

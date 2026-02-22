@@ -9,6 +9,8 @@ export interface Deal {
   title: string;
   value: number;
   stage: "prospect" | "negotiation" | "closed";
+  notes: string | null;
+  repo_url: string | null;
   created_at: string;
 }
 
@@ -18,7 +20,7 @@ export interface DealWithLead extends Deal {
 }
 
 export type DealInsert = Omit<Deal, "id" | "created_at">;
-export type DealUpdate = Partial<Pick<Deal, "title" | "value" | "stage">> & { id: number };
+export type DealUpdate = Partial<Pick<Deal, "title" | "value" | "stage" | "notes" | "repo_url">> & { id: number };
 
 export function useDeals(leadId?: number) {
   return useQuery({
@@ -33,7 +35,6 @@ export function useDeals(leadId?: number) {
   });
 }
 
-// Busca todos os deals com o nome do lead (para aba Projetos)
 export function useAllDealsWithLead() {
   const { user } = useAuth();
   return useQuery({
@@ -101,7 +102,7 @@ export function useUpdateDeal() {
       qc.invalidateQueries({ queryKey: ["deals"] });
       qc.invalidateQueries({ queryKey: ["deals-with-lead"] });
     },
-    onError: (e: Error) => toast({ title: "Erro ao mover deal", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Erro ao atualizar deal", description: e.message, variant: "destructive" }),
   });
 }
 
