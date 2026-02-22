@@ -11,9 +11,19 @@ import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Projetos from "./pages/Projetos";
 import Workflow from "./pages/Workflow";
+import Config from "./pages/Config";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,    // 5 min — não refetch se dado tiver < 5min
+      gcTime: 1000 * 60 * 30,      // 30 min — mantém em memória
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,6 +49,7 @@ const App = () => (
             <Route path="/leads" element={<Leads />} />
             <Route path="/projetos" element={<Projetos />} />
             <Route path="/workflow" element={<Workflow />} />
+            <Route path="/config" element={<Config />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
