@@ -1,26 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- fundo arredondado escuro -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- fundo arredondado -->
   <rect width="64" height="64" rx="14" fill="#0f0f11"/>
 
-  <!-- anel de sync -->
-  <path
-    d="M32 14 A18 18 0 1 1 14 32"
-    stroke="#7c3aed"
-    stroke-width="5"
-    stroke-linecap="round"
-    fill="none"
-  />
+  <!-- letra S -->
+  <text
+    x="32"
+    y="46"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="36"
+    font-weight="800"
+    fill="url(#grad)"
+    letter-spacing="-1"
+  >S</text>
 
-  <!-- seta esquerda (retorno) -->
-  <polyline
-    points="11,24 14,32 22,29"
-    stroke="#7c3aed"
-    stroke-width="4.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    fill="none"
-  />
-
-  <!-- ponto central -->
-  <circle cx="32" cy="32" r="4" fill="#a78bfa"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
 </svg>
