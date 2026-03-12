@@ -1,0 +1,18 @@
+{
+  "name": "Syncro CRM",
+  "short_name": "Syncro",
+  "description": "Gerencie seus leads, deals e projetos em um só lugar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f11",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,26 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- fundo arredondado escuro -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <!-- fundo -->
   <rect width="64" height="64" rx="14" fill="#0f0f11"/>
 
-  <!-- anel de sync -->
-  <path
-    d="M32 14 A18 18 0 1 1 14 32"
-    stroke="#7c3aed"
-    stroke-width="5"
-    stroke-linecap="round"
-    fill="none"
-  />
+  <!-- silhueta cabeça dragão (perfil esquerdo, boca aberta) -->
+  <path fill="url(#g)" d="
+    M 44 14
+    C 40 12, 35 11, 30 13
+    C 26 14, 23 17, 21 20
+    L 17 19
+    C 15 19, 14 21, 15 23
+    L 18 25
+    C 16 28, 15 32, 16 36
+    C 17 40, 20 43, 24 44
+    L 24 50
+    C 24 52, 26 53, 27 51
+    L 28 46
+    C 31 47, 34 47, 37 45
+    L 40 52
+    C 41 54, 43 53, 43 51
+    L 42 44
+    C 46 41, 49 37, 49 32
+    C 49 27, 47 21, 44 17
+    Z
 
-  <!-- seta esquerda (retorno) -->
-  <polyline
-    points="11,24 14,32 22,29"
-    stroke="#7c3aed"
-    stroke-width="4.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    fill="none"
-  />
+    M 20 27
+    C 19 27, 18 28, 19 29
+    C 20 30, 21 29, 20 27
+    Z
+  "/>
 
-  <!-- ponto central -->
-  <circle cx="32" cy="32" r="4" fill="#a78bfa"/>
+  <!-- chifre -->
+  <path fill="url(#g)" d="
+    M 38 11
+    C 39 8, 43 6, 45 8
+    C 43 9, 41 11, 40 14
+    Z
+  "/>
+
+  <!-- olho (vazio = brilho) -->
+  <circle cx="26" cy="26" r="2.2" fill="#0f0f11"/>
+  <circle cx="26.6" cy="25.4" r="0.7" fill="#c4b5fd"/>
 </svg>
