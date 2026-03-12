@@ -5,62 +5,60 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfig } from "@/hooks/useConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, LogOut, Moon, Sun, Monitor, Eye, EyeOff } from "lucide-react";
+import {
+  Loader2, LogOut, Moon, Sun, Monitor,
+  Eye, EyeOff, Download, Smartphone, CheckCircle2,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 
 // --- Schemas ---
 const profileSchema = z.object({
   display_name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
 });
-
 const passwordSchema = z.object({
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  confirm: z.string(),
+  confirm:  z.string(),
 }).refine((d) => d.password === d.confirm, {
   message: "Senhas não coincidem",
   path: ["confirm"],
 });
-
 const integrationSchema = z.object({
   github_token: z.string().optional(),
 });
 
-type ProfileForm = z.infer<typeof profileSchema>;
-type PasswordForm = z.infer<typeof passwordSchema>;
+type ProfileForm     = z.infer<typeof profileSchema>;
+type PasswordForm    = z.infer<typeof passwordSchema>;
 type IntegrationForm = z.infer<typeof integrationSchema>;
 
 export default function Config() {
-  const { user, signOut } = useAuth();
+  const { user, signOut }            = useAuth();
   const { config, isLoading, updateConfig } = useConfig();
-  const { theme, setTheme } = useTheme();
-  const [showToken, setShowToken] = useState(false);
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const { theme, setTheme }          = useTheme();
+  const { isInstallable, isInstalled, install } = usePWAInstall();
+  const [showToken,         setShowToken]         = useState(false);
+  const [isSavingPassword,  setIsSavingPassword]  = useState(false);
+  const [installing,        setInstalling]        = useState(false);
 
-  // --- Perfil ---
   const profileForm = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     defaultValues: { display_name: "" },
   });
-
-  // --- Senha ---
   const passwordForm = useForm<PasswordForm>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { password: "", confirm: "" },
   });
-
-  // --- Integração ---
   const integrationForm = useForm<IntegrationForm>({
     resolver: zodResolver(integrationSchema),
     defaultValues: { github_token: "" },
   });
 
-  // Popula forms quando config carrega
   useEffect(() => {
     if (config) {
       profileForm.reset({ display_name: config.display_name ?? "" });
@@ -68,9 +66,8 @@ export default function Config() {
     }
   }, [config]);
 
-  const onSaveProfile = (data: ProfileForm) => {
+  const onSaveProfile = (data: ProfileForm) =>
     updateConfig.mutate({ display_name: data.display_name });
-  };
 
   const onSavePassword = async (data: PasswordForm) => {
     setIsSavingPassword(true);
@@ -86,8 +83,14 @@ export default function Config() {
     }
   };
 
-  const onSaveIntegration = (data: IntegrationForm) => {
+  const onSaveIntegration = (data: IntegrationForm) =>
     updateConfig.mutate({ github_token: data.github_token ?? null });
+
+  const handleInstall = async () => {
+    setInstalling(true);
+    const accepted = await install();
+    setInstalling(false);
+    if (accepted) toast.success("Syncro instalado com sucesso!");
   };
 
   if (isLoading) {
@@ -104,6 +107,81 @@ export default function Config() {
         <h1 className="text-2xl font-bold">Configurações</h1>
         <p className="text-sm text-muted-foreground mt-1">Gerencie seu perfil, aparência e integrações.</p>
       </div>
+
+      {/* PWA */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Smartphone className="w-4 h-4" />
+            Instalar aplicativo
+          </CardTitle>
+          <CardDescription>
+            Instale o Syncro no seu celular ou desktop para acessá-lo como um app nativo, sem precisar abrir o navegador.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isInstalled ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Syncro já está instalado</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Você está usando o app instalado.
+                </p>
+              </div>
+            </div>
+          ) : isInstallable ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/40">
+                <Download className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Disponível para instalação</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Funciona no Chrome, Edge e Android.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleInstall}
+                  disabled={installing}
+                  className="gap-1.5 flex-shrink-0"
+                >
+                  {installing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  Instalar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Siga as instruções abaixo para instalar no seu dispositivo:
+              </p>
+              <div className="space-y-2">
+                {[
+                  { icon: "📱", label: "Android (Chrome)", desc: "Menu (⋮) → Adicionar à tela inicial" },
+                  { icon: "💜", label: "iPhone (Safari)",  desc: "Compartilhar (⧇) → Adicionar à Tela de Início" },
+                  { icon: "🖥️", label: "Desktop (Chrome/Edge)", desc: "Clique no ícone de instalar na barra de endereço" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-start gap-3 p-2.5 rounded-lg border border-border/40 bg-muted/20"
+                  >
+                    <span className="text-base mt-0.5">{item.icon}</span>
+                    <div>
+                      <p className="text-xs font-medium text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* PERFIL */}
       <Card>
@@ -142,14 +220,14 @@ export default function Config() {
           <form onSubmit={passwordForm.handleSubmit(onSavePassword)} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Nova senha</Label>
-              <Input id="password" type="password" placeholder="••••••••" {...passwordForm.register("password")} />
+              <Input id="password" type="password" placeholder="········" {...passwordForm.register("password")} />
               {passwordForm.formState.errors.password && (
                 <span className="text-xs text-destructive">{passwordForm.formState.errors.password.message}</span>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="confirm">Confirmar nova senha</Label>
-              <Input id="confirm" type="password" placeholder="••••••••" {...passwordForm.register("confirm")} />
+              <Input id="confirm" type="password" placeholder="········" {...passwordForm.register("confirm")} />
               {passwordForm.formState.errors.confirm && (
                 <span className="text-xs text-destructive">{passwordForm.formState.errors.confirm.message}</span>
               )}
@@ -170,9 +248,9 @@ export default function Config() {
         <CardContent>
           <div className="flex gap-2">
             {[
-              { value: "light", label: "Claro", icon: Sun },
-              { value: "dark", label: "Escuro", icon: Moon },
-              { value: "system", label: "Sistema", icon: Monitor },
+              { value: "light",  label: "Claro",   icon: Sun },
+              { value: "dark",   label: "Escuro",   icon: Moon },
+              { value: "system", label: "Sistema",  icon: Monitor },
             ].map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
@@ -227,7 +305,7 @@ export default function Config() {
         </CardContent>
       </Card>
 
-      {/* CONTA / LOGOUT */}
+      {/* CONTA */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">🗄️ Conta</CardTitle>
