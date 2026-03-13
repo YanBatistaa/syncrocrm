@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Github, RefreshCw, Plus, DollarSign, Briefcase, Mail, Phone, Archive, ArchiveRestore, X, Tag } from "lucide-react";
+import { Github, RefreshCw, Plus, DollarSign, Briefcase, Mail, Phone, Archive, ArchiveRestore, X, Tag, MapPin, Link } from "lucide-react";
 import {
     Sheet,
     SheetContent,
@@ -27,6 +27,7 @@ import { DealForm } from "./DealForm";
 import { DealItem } from "./DealItem";
 import { IssueItem } from "./IssueItem";
 import { EMPTY_DEAL_FORM } from "./LeadForm";
+import { LEAD_STATUSES } from "@/lib/leadStatus";
 
 const PRESET_TAGS = ["Web", "Roblox", "MU Online", "Landing Page", "Mobile", "API", "Automação", "Design"];
 
@@ -47,7 +48,7 @@ export function LeadDetailSheet({
     onClose,
     isSaving,
 }: LeadDetailSheetProps) {
-    const set = (key: keyof Lead, val: string | boolean | null | string[]) =>
+    const set = (key: keyof Lead, val: string | boolean | null | string[] | number) =>
         onEditFormChange({ ...editForm, [key]: val });
 
     const archiveLead = useArchiveLead();
@@ -118,10 +119,14 @@ export function LeadDetailSheet({
                             </SheetTitle>
                             <SheetDescription>{lead.company}</SheetDescription>
                         </div>
-                        {totalDealsValue > 0 && (
+                        {/* Mostra price_usd em USD se disponível, senão total de deals em R$ */}
+                        {(lead.price_usd != null || totalDealsValue > 0) && (
                             <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-md text-xs font-semibold shrink-0">
                                 <DollarSign className="w-3.5 h-3.5" />
-                                R$ {totalDealsValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                {lead.price_usd != null
+                                    ? `$${lead.price_usd.toLocaleString("en-US", { minimumFractionDigits: 0 })}`
+                                    : `R$ ${totalDealsValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                }
                             </div>
                         )}
                     </div>
@@ -198,6 +203,73 @@ export function LeadDetailSheet({
                         </div>
                     </div>
 
+                    {/* Issue #2 — Cidade, Nicho, Demo URL, Valor USD */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <MapPin className="w-3 h-3" /> Cidade
+                            </Label>
+                            <Input
+                                value={editForm.city ?? ""}
+                                onChange={(e) => set("city", e.target.value || null)}
+                                className="bg-background border-border/60 text-sm"
+                                placeholder="Austin, TX"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Tag className="w-3 h-3" /> Nicho
+                            </Label>
+                            <Input
+                                value={editForm.niche ?? ""}
+                                onChange={(e) => set("niche", e.target.value || null)}
+                                className="bg-background border-border/60 text-sm"
+                                placeholder="Dentista, Academia..."
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Link className="w-3 h-3" /> Demo URL
+                            </Label>
+                            <div className="flex gap-1">
+                                <Input
+                                    value={editForm.demo_url ?? ""}
+                                    onChange={(e) => set("demo_url", e.target.value || null)}
+                                    className="bg-background border-border/60 text-sm"
+                                    placeholder="https://demo.lovable.app/..."
+                                />
+                                {editForm.demo_url && (
+                                    <a
+                                        href={editForm.demo_url.startsWith("http") ? editForm.demo_url : `https://${editForm.demo_url}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center px-2 rounded-md border border-border/60 bg-background text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        <Link className="w-3.5 h-3.5" />
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" /> Valor (USD)
+                            </Label>
+                            <Input
+                                type="number"
+                                min={0}
+                                value={editForm.price_usd ?? ""}
+                                onChange={(e) =>
+                                    set("price_usd", e.target.value ? parseFloat(e.target.value) : null)
+                                }
+                                className="bg-background border-border/60 text-sm"
+                                placeholder="1200"
+                            />
+                        </div>
+                    </div>
+
                     <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Repo URL</Label>
                         <div className="flex gap-2">
@@ -213,6 +285,7 @@ export function LeadDetailSheet({
                         </div>
                     </div>
 
+                    {/* Issue #1 — select de status com novos valores */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">Status</Label>
@@ -221,9 +294,9 @@ export function LeadDetailSheet({
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="new">Novo</SelectItem>
-                                    <SelectItem value="in-progress">Em Progresso</SelectItem>
-                                    <SelectItem value="done">Concluído</SelectItem>
+                                    {LEAD_STATUSES.map((s) => (
+                                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -243,7 +316,6 @@ export function LeadDetailSheet({
                         <Label className="text-xs text-muted-foreground flex items-center gap-1">
                             <Tag className="w-3 h-3" /> Tags
                         </Label>
-                        {/* Tags atuais */}
                         {currentTags.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
                                 {currentTags.map((tag) => (
@@ -259,7 +331,6 @@ export function LeadDetailSheet({
                                 ))}
                             </div>
                         )}
-                        {/* Sugestões */}
                         <div className="flex flex-wrap gap-1">
                             {PRESET_TAGS.filter((t) => !currentTags.includes(t)).map((tag) => (
                                 <button
@@ -271,7 +342,6 @@ export function LeadDetailSheet({
                                 </button>
                             ))}
                         </div>
-                        {/* Input personalizado */}
                         <div className="flex gap-2">
                             <Input
                                 value={tagInput}

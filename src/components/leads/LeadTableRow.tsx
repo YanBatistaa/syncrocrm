@@ -9,9 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import StatusBadge from "@/components/StatusBadge";
 import { Lead } from "@/hooks/useLeads";
 import { useDeals } from "@/hooks/useDeals";
+import { LEAD_STATUSES, getStatusLabel, getStatusColor } from "@/lib/leadStatus";
 
 interface LeadTableRowProps {
   lead: Lead;
@@ -27,13 +27,15 @@ export function LeadTableRow({ lead, onClick, onStatusChange, onDelete }: LeadTa
   const isOverdue =
     lead.deadline &&
     isBefore(parseISO(lead.deadline), new Date()) &&
-    lead.status !== "done";
+    lead.status !== "done" &&
+    lead.status !== "fechado";
 
   const isDueSoon =
     lead.deadline &&
     !isOverdue &&
     isBefore(parseISO(lead.deadline), addDays(new Date(), 3)) &&
-    lead.status !== "done";
+    lead.status !== "done" &&
+    lead.status !== "fechado";
 
   return (
     <tr
@@ -43,9 +45,17 @@ export function LeadTableRow({ lead, onClick, onStatusChange, onDelete }: LeadTa
       onClick={onClick}
     >
       <td className="p-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-foreground">{lead.name}</span>
-          {lead.archived && <Archive className="w-3 h-3 text-muted-foreground/50" />}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-foreground">{lead.name}</span>
+            {lead.archived && <Archive className="w-3 h-3 text-muted-foreground/50" />}
+          </div>
+          {/* Issue #2 — cidade e nicho abaixo do nome */}
+          {(lead.city || lead.niche) && (
+            <span className="text-xs text-muted-foreground/60">
+              {[lead.city, lead.niche].filter(Boolean).join(" · ")}
+            </span>
+          )}
         </div>
       </td>
       <td className="p-3">
@@ -67,17 +77,20 @@ export function LeadTableRow({ lead, onClick, onStatusChange, onDelete }: LeadTa
           )}
         </div>
       </td>
+      {/* Issue #1 — status select com novos valores */}
       <td className="p-3" onClick={(e) => e.stopPropagation()}>
         <Select value={lead.status} onValueChange={onStatusChange}>
           <SelectTrigger className="h-7 text-xs bg-transparent border-none p-0 w-fit gap-1 focus:ring-0">
             <SelectValue>
-              <StatusBadge status={lead.status} />
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusColor(lead.status)}`}>
+                {getStatusLabel(lead.status)}
+              </span>
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="new">Novo</SelectItem>
-            <SelectItem value="in-progress">Em Progresso</SelectItem>
-            <SelectItem value="done">Concluído</SelectItem>
+            {LEAD_STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </td>
@@ -98,8 +111,13 @@ export function LeadTableRow({ lead, onClick, onStatusChange, onDelete }: LeadTa
           <span className="text-xs text-muted-foreground/40">—</span>
         )}
       </td>
+      {/* Issue #2 — exibe price_usd se houver, senão valor de deals em R$ */}
       <td className="p-3">
-        {totalValue > 0 ? (
+        {lead.price_usd != null ? (
+          <span className="text-xs font-medium text-primary">
+            ${lead.price_usd.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+          </span>
+        ) : totalValue > 0 ? (
           <span className="text-xs font-medium text-primary">
             R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
           </span>

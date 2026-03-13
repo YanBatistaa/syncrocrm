@@ -3,6 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
+// Issue #1 — novos status do funil de outreach
+// Os valores antigos (new | in-progress | done) são mantidos como fallback
+// para não quebrar dados já existentes no banco.
+export type LeadStatus =
+  | "prospectado"
+  | "demo-criada"
+  | "email-enviado"
+  | "follow-up-1"
+  | "follow-up-2"
+  | "fechado"
+  | "recusado"
+  // legados — mantidos para compatibilidade com registros antigos
+  | "new"
+  | "in-progress"
+  | "done";
+
 export interface Lead {
   id: number;
   user_id: string;
@@ -11,13 +27,20 @@ export interface Lead {
   email: string | null;
   phone: string | null;
   repo_url: string | null;
-  status: "new" | "in-progress" | "done";
+  status: LeadStatus;
   deadline: string | null;
   notes: string | null;
   github_sync: boolean;
   tags: string[] | null;
   archived: boolean;
   created_at: string;
+  // Issue #2 — campos de outreach
+  demo_url: string | null;
+  city: string | null;
+  niche: string | null;
+  price_usd: number | null;
+  // Issue #6 — preenchido após envio de email
+  email_sent_at: string | null;
 }
 
 export type LeadInsert = Omit<Lead, "id" | "created_at" | "user_id">;
