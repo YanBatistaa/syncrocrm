@@ -1,4 +1,4 @@
-import { ChevronDown, DollarSign, Github } from "lucide-react";
+import { ChevronDown, DollarSign, Github, Link, MapPin, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { LeadInsert } from "@/hooks/useLeads";
+import { LEAD_STATUSES } from "@/lib/leadStatus";
 
 export const EMPTY_DEAL_FORM = {
     title: "",
@@ -35,7 +36,7 @@ export function LeadForm({
     showDealSection,
     onToggleDealSection,
 }: LeadFormProps) {
-    const set = (key: keyof LeadInsert, val: string | boolean | null) =>
+    const set = (key: keyof LeadInsert, val: string | boolean | number | null) =>
         onChange({ ...form, [key]: val });
 
     return (
@@ -61,6 +62,32 @@ export function LeadForm({
                 </div>
             </div>
 
+            {/* Issue #2 — Cidade e Nicho */}
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> Cidade
+                    </Label>
+                    <Input
+                        value={form.city ?? ""}
+                        onChange={(e) => set("city", e.target.value || null)}
+                        className="bg-background border-border/60 text-sm"
+                        placeholder="Austin, TX"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> Nicho
+                    </Label>
+                    <Input
+                        value={form.niche ?? ""}
+                        onChange={(e) => set("niche", e.target.value || null)}
+                        className="bg-background border-border/60 text-sm"
+                        placeholder="Dentista, Academia..."
+                    />
+                </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">Status</Label>
@@ -69,9 +96,9 @@ export function LeadForm({
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="new">Novo</SelectItem>
-                            <SelectItem value="in-progress">Em Progresso</SelectItem>
-                            <SelectItem value="done">Concluído</SelectItem>
+                            {LEAD_STATUSES.map((s) => (
+                                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -82,6 +109,36 @@ export function LeadForm({
                         value={form.deadline ?? ""}
                         onChange={(e) => set("deadline", e.target.value || null)}
                         className="bg-background border-border/60 text-sm"
+                    />
+                </div>
+            </div>
+
+            {/* Issue #2 — Demo URL e Valor USD */}
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Link className="w-3 h-3" /> Demo URL
+                    </Label>
+                    <Input
+                        value={form.demo_url ?? ""}
+                        onChange={(e) => set("demo_url", e.target.value || null)}
+                        className="bg-background border-border/60 text-sm"
+                        placeholder="https://demo.lovable.app/..."
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" /> Valor (USD)
+                    </Label>
+                    <Input
+                        type="number"
+                        min={0}
+                        value={form.price_usd ?? ""}
+                        onChange={(e) =>
+                            set("price_usd", e.target.value ? parseFloat(e.target.value) : null)
+                        }
+                        className="bg-background border-border/60 text-sm"
+                        placeholder="1200"
                     />
                 </div>
             </div>

@@ -30,6 +30,7 @@ import { Plus, Archive } from "lucide-react";
 import { LeadForm, EMPTY_DEAL_FORM } from "@/components/leads/LeadForm";
 import { LeadTableRow } from "@/components/leads/LeadTableRow";
 import { LeadDetailSheet } from "@/components/leads/LeadDetailSheet";
+import { LEAD_STATUSES } from "@/lib/leadStatus";
 
 const EMPTY_LEAD: LeadInsert = {
   name: "",
@@ -37,12 +38,18 @@ const EMPTY_LEAD: LeadInsert = {
   email: null,
   phone: null,
   repo_url: "",
-  status: "new",
+  status: "prospectado",
   deadline: null,
   notes: "",
   github_sync: false,
   tags: null,
   archived: false,
+  // Issue #2 — campos de outreach
+  demo_url: null,
+  city: null,
+  niche: null,
+  price_usd: null,
+  email_sent_at: null,
 };
 
 export default function Leads() {
@@ -61,12 +68,23 @@ export default function Leads() {
   const [search,         setSearch]         = useState("");
   const [statusFilter,   setStatusFilter]   = useState<string>("all");
   const [tagFilter,      setTagFilter]      = useState<string>("all");
+  // Issue #4 — filtro por nicho
+  const [nichoFilter,    setNichoFilter]    = useState<string>("all");
   const [initialDealForm, setInitialDealForm] = useState(EMPTY_DEAL_FORM);
   const [showDealSection, setShowDealSection] = useState(false);
 
   // Todas as tags existentes
   const allTags = useMemo(
     () => Array.from(new Set(leads.flatMap((l) => l.tags ?? []))).sort(),
+    [leads]
+  );
+
+  // Issue #4 — nichos únicos existentes nos leads cadastrados
+  const allNichos = useMemo(
+    () =>
+      Array.from(
+        new Set(leads.map((l) => l.niche).filter((n): n is string => !!n))
+      ).sort(),
     [leads]
   );
 
@@ -78,9 +96,11 @@ export default function Leads() {
           (l.company ?? "").toLowerCase().includes(search.toLowerCase());
         const matchesStatus = statusFilter === "all" || l.status === statusFilter;
         const matchesTag    = tagFilter === "all" || (l.tags ?? []).includes(tagFilter);
-        return matchesSearch && matchesStatus && matchesTag;
+        // Issue #4 — filtro defensivo: ignora se niche for undefined/null
+        const matchesNicho  = nichoFilter === "all" || (l.niche ?? "") === nichoFilter;
+        return matchesSearch && matchesStatus && matchesTag && matchesNicho;
       }),
-    [leads, search, statusFilter, tagFilter]
+    [leads, search, statusFilter, tagFilter, nichoFilter]
   );
 
   const handleCreate = async () => {
@@ -124,15 +144,21 @@ export default function Leads() {
   const openLead = (lead: Lead) => {
     setSelectedLead(lead);
     setEditForm({
-      name:     lead.name,
-      company:  lead.company ?? "",
-      email:    lead.email ?? "",
-      phone:    lead.phone ?? "",
-      repo_url: lead.repo_url ?? "",
-      status:   lead.status,
-      deadline: lead.deadline,
-      notes:    lead.notes ?? "",
-      tags:     lead.tags ?? [],
+      name:          lead.name,
+      company:       lead.company ?? "",
+      email:         lead.email ?? "",
+      phone:         lead.phone ?? "",
+      repo_url:      lead.repo_url ?? "",
+      status:        lead.status,
+      deadline:      lead.deadline,
+      notes:         lead.notes ?? "",
+      tags:          lead.tags ?? [],
+      // Issue #2 — inclui novos campos no editForm
+      demo_url:      lead.demo_url ?? "",
+      city:          lead.city ?? "",
+      niche:         lead.niche ?? "",
+      price_usd:     lead.price_usd ?? null,
+      email_sent_at: lead.email_sent_at ?? null,
     });
   };
 
@@ -171,17 +197,32 @@ export default function Leads() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs bg-card border-border/60 text-sm"
         />
+        {/* Issue #1 — filtro de status com novos valores */}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-44 bg-card border-border/60 text-sm">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="new">Novo</SelectItem>
-            <SelectItem value="in-progress">Em Progresso</SelectItem>
-            <SelectItem value="done">Concluído</SelectItem>
+            {LEAD_STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
+        {/* Issue #4 — filtro por nicho (só aparece se houver nichos cadastrados) */}
+        {allNichos.length > 0 && (
+          <Select value={nichoFilter} onValueChange={setNichoFilter}>
+            <SelectTrigger className="w-44 bg-card border-border/60 text-sm">
+              <SelectValue placeholder="Nicho" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os nichos</SelectItem>
+              {allNichos.map((n) => (
+                <SelectItem key={n} value={n}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {allTags.length > 0 && (
           <Select value={tagFilter} onValueChange={setTagFilter}>
             <SelectTrigger className="w-44 bg-card border-border/60 text-sm">
